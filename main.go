@@ -1,12 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/schollz/getsong"
@@ -113,12 +115,44 @@ type Track struct {
 }
 
 func main() {
-	playlistID := flag.String("playlist", "", "The Spotify playlist ID")
-	bearerToken := flag.String("bearer", "", "Bearer token to use for Spotify")
+	var playlistID, bearerToken string
+	flag.StringVar(&playlistID, "playlist", "", "The Spotify playlist ID")
+	flag.StringVar(&bearerToken, "bearer", "", "Bearer token to use for Spotify")
 	flag.Parse()
-	err := run(*bearerToken, *playlistID)
+
+	if bearerToken == "" {
+		fmt.Print(`Go to the Spotify Developer page: https://developer.spotify.com/console/get-playlist-tracks
+
+At the bottom click "Get Token" and choose the playlist permissions 
+"playlist-read-private" and "playlist-read-collaborative". 
+Press "Request Token" and you'll be redirected to a Sign-in page.
+
+Sign in with your credentials and then you'll be redirected back to 
+the Spotify Developer page. Your Bearer key is at the bottom 
+under "OAuth Token".
+
+Copy that bearer token here: `)
+		reader := bufio.NewReader(os.Stdin)
+		bearerToken, _ = reader.ReadString('\n')
+		bearerToken = strings.TrimSpace(bearerToken)
+	}
+
+	if playlistID == "" {
+		fmt.Print(`To get the playlist tracks, you'll first need the playlist ID. 
+To get the playlist ID, just right-click the playlist and goto 
+Share -> Playlist URL. The URL will be something like
+
+https://open.spotify.com/user/X/playlist/Y?si=Z
+		
+The playlist ID you need is "Y." Enter that playlist ID here: `)
+		reader := bufio.NewReader(os.Stdin)
+		playlistID, _ = reader.ReadString('\n')
+		playlistID = strings.TrimSpace(playlistID)
+	}
+
+	err := run(bearerToken, playlistID)
 	if err != nil {
-		fmt.Printf("Problem running: %s", err.Error())
+		fmt.Printf("\nProblem with your bearer key or your playlist ID: %s\n", err.Error())
 	}
 }
 
