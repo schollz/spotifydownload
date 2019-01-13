@@ -157,8 +157,6 @@ The playlist ID you need is "Y." Enter that playlist ID here: `)
 }
 
 func run(bearerToken, playlistID string) (err error) {
-	getsong.OptionShowProgressBar = false
-
 	spotifyJSON, err := getSpotifyPlaylist(bearerToken, playlistID)
 	if err != nil {
 		return
@@ -182,20 +180,14 @@ func run(bearerToken, playlistID string) (err error) {
 	for w := 0; w < workers; w++ {
 		go func(jobs <-chan Track, results chan<- Result) {
 			for j := range jobs {
-				var err error
-
-				id, err := getsong.GetMusicVideoID(j.title+" "+j.artist, j.duration)
-				if err == nil {
-					fmt.Printf("Downloading %s by %s...\n", j.title, j.artist)
-					fname, err := getsong.DownloadYouTube(id, j.artist+" - "+j.title)
-					if err == nil {
-						fmt.Printf("Converting %s by %s...\n", j.title, j.artist)
-						err = getsong.ConvertToMp3(fname)
-						if err == nil {
-							fmt.Printf("Finished %s by %s...\n", j.title, j.artist)
-						}
-					}
-				}
+				fmt.Printf("Downloading %s by %s...\n", j.title, j.artist)
+				fname, err := getsong.GetSong(getsong.Options{
+					Title:        j.title,
+					Artist:       j.artist,
+					Duration:     j.duration,
+					ShowProgress: true,
+				})
+				fmt.Printf("Downloaded %s.\n", fname)
 
 				results <- Result{
 					track: j,
@@ -226,7 +218,7 @@ func run(bearerToken, playlistID string) (err error) {
 }
 
 func getSpotifyPlaylist(bearerToken, playlistID string) (spotifyJSON Spotify, err error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.spotify.com/v1/playlists/%s/tracks", playlistID), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.spotify.com/v1/playlists/%s/tracks?limit=100", playlistID), nil)
 	if err != nil {
 		return
 	}
