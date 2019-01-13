@@ -8,100 +8,12 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 
 	"github.com/schollz/getsong"
 )
-
-type Spotify struct {
-	Href  string `json:"href"`
-	Items []struct {
-		AddedAt time.Time `json:"added_at"`
-		AddedBy struct {
-			ExternalUrls struct {
-				Spotify string `json:"spotify"`
-			} `json:"external_urls"`
-			Href string `json:"href"`
-			ID   string `json:"id"`
-			Type string `json:"type"`
-			URI  string `json:"uri"`
-		} `json:"added_by"`
-		IsLocal      bool         `json:"is_local"`
-		PrimaryColor *interface{} `json:"primary_color"`
-		Track        struct {
-			Album struct {
-				AlbumType string `json:"album_type"`
-				Artists   []struct {
-					ExternalUrls struct {
-						Spotify string `json:"spotify"`
-					} `json:"external_urls"`
-					Href string `json:"href"`
-					ID   string `json:"id"`
-					Name string `json:"name"`
-					Type string `json:"type"`
-					URI  string `json:"uri"`
-				} `json:"artists"`
-				AvailableMarkets []string `json:"available_markets"`
-				ExternalUrls     struct {
-					Spotify string `json:"spotify"`
-				} `json:"external_urls"`
-				Href   string `json:"href"`
-				ID     string `json:"id"`
-				Images []struct {
-					Height int    `json:"height"`
-					URL    string `json:"url"`
-					Width  int    `json:"width"`
-				} `json:"images"`
-				Name                 string `json:"name"`
-				ReleaseDate          string `json:"release_date"`
-				ReleaseDatePrecision string `json:"release_date_precision"`
-				TotalTracks          int    `json:"total_tracks"`
-				Type                 string `json:"type"`
-				URI                  string `json:"uri"`
-			} `json:"album"`
-			Artists []struct {
-				ExternalUrls struct {
-					Spotify string `json:"spotify"`
-				} `json:"external_urls"`
-				Href string `json:"href"`
-				ID   string `json:"id"`
-				Name string `json:"name"`
-				Type string `json:"type"`
-				URI  string `json:"uri"`
-			} `json:"artists"`
-			AvailableMarkets []string `json:"available_markets"`
-			DiscNumber       int      `json:"disc_number"`
-			DurationMs       int      `json:"duration_ms"`
-			Episode          bool     `json:"episode"`
-			Explicit         bool     `json:"explicit"`
-			ExternalIds      struct {
-				Isrc string `json:"isrc"`
-			} `json:"external_ids"`
-			ExternalUrls struct {
-				Spotify string `json:"spotify"`
-			} `json:"external_urls"`
-			Href        string `json:"href"`
-			ID          string `json:"id"`
-			IsLocal     bool   `json:"is_local"`
-			Name        string `json:"name"`
-			Popularity  int    `json:"popularity"`
-			PreviewURL  string `json:"preview_url"`
-			Track       bool   `json:"track"`
-			TrackNumber int    `json:"track_number"`
-			Type        string `json:"type"`
-			URI         string `json:"uri"`
-		} `json:"track"`
-		VideoThumbnail struct {
-			URL *interface{} `json:"url"`
-		} `json:"video_thumbnail"`
-	} `json:"items"`
-	Limit    int          `json:"limit"`
-	Next     *interface{} `json:"next"`
-	Offset   int          `json:"offset"`
-	Previous *interface{} `json:"previous"`
-	Total    int          `json:"total"`
-}
 
 type Result struct {
 	err   error
@@ -114,11 +26,30 @@ type Track struct {
 	duration int
 }
 
+func getBearerKeyUsingChromeHeadless() (bearer string, err error) {
+	cmd := exec.Command("node", "index.js")
+	var bearerBytes []byte
+	bearerBytes, _ = cmd.CombinedOutput()
+	bearer = strings.TrimSpace(string(bearerBytes))
+	if strings.Contains(bearer, `Cannot find module 'puppeteer'`) {
+		err = fmt.Errorf("need to install puppeteer")
+	}
+	return
+}
+
 func main() {
 	var playlistID, bearerToken string
 	flag.StringVar(&playlistID, "playlist", "", "The Spotify playlist ID")
 	flag.StringVar(&bearerToken, "bearer", "", "Bearer token to use for Spotify")
 	flag.Parse()
+
+	if bearerToken == "" {
+		var errBearerFromNode error
+		bearerToken, errBearerFromNode = getBearerKeyUsingChromeHeadless()
+		if errBearerFromNode != nil {
+			bearerToken = ""
+		}
+	}
 
 	if bearerToken == "" {
 		fmt.Print(`Go to the Spotify Developer page: https://developer.spotify.com/console/get-playlist-tracks
@@ -161,17 +92,20 @@ func run(bearerToken, playlistID string) (err error) {
 	if err != nil {
 		return
 	}
-	if len(spotifyJSON.Items) == 0 {
+	if len(spotifyJSON.Tracks.Items) == 0 {
 		err = fmt.Errorf("found no tracks")
 		return
 	}
 
-	os.Mkdir(playlistID, 0644)
-	os.Chdir(playlistID)
+	os.Mkdir(spotifyJSON.Name, 0644)
+	os.Chdir(spotifyJSON.Name)
+
+	bJSON, _ := json.MarshalIndent(spotifyJSON, "", " ")
+	ioutil.WriteFile(time.Now().Format("2006-01-02")+".json", bJSON, 0644)
 
 	workers := 30
 
-	tracksToDownload := make([]string, len(spotifyJSON.Items))
+	tracksToDownload := make([]string, len(spotifyJSON.Tracks.Items))
 
 	jobs := make(chan Track, len(tracksToDownload))
 
@@ -197,7 +131,7 @@ func run(bearerToken, playlistID string) (err error) {
 		}(jobs, results)
 	}
 
-	for _, song := range spotifyJSON.Items {
+	for _, song := range spotifyJSON.Tracks.Items {
 		jobs <- Track{
 			title:    song.Track.Name,
 			artist:   song.Track.Artists[0].Name,
@@ -217,8 +151,131 @@ func run(bearerToken, playlistID string) (err error) {
 	return
 }
 
+type Spotify struct {
+	Collaborative bool   `json:"collaborative"`
+	Description   string `json:"description"`
+	ExternalUrls  struct {
+		Spotify string `json:"spotify"`
+	} `json:"external_urls"`
+	Followers struct {
+		Href  interface{} `json:"href"`
+		Total int         `json:"total"`
+	} `json:"followers"`
+	Href   string `json:"href"`
+	ID     string `json:"id"`
+	Images []struct {
+		Height interface{} `json:"height"`
+		URL    string      `json:"url"`
+		Width  interface{} `json:"width"`
+	} `json:"images"`
+	Name  string `json:"name"`
+	Owner struct {
+		DisplayName  string `json:"display_name"`
+		ExternalUrls struct {
+			Spotify string `json:"spotify"`
+		} `json:"external_urls"`
+		Href string `json:"href"`
+		ID   string `json:"id"`
+		Type string `json:"type"`
+		URI  string `json:"uri"`
+	} `json:"owner"`
+	PrimaryColor interface{} `json:"primary_color"`
+	Public       bool        `json:"public"`
+	SnapshotID   string      `json:"snapshot_id"`
+	Tracks       struct {
+		Href  string `json:"href"`
+		Items []struct {
+			AddedAt time.Time `json:"added_at"`
+			AddedBy struct {
+				ExternalUrls struct {
+					Spotify string `json:"spotify"`
+				} `json:"external_urls"`
+				Href string `json:"href"`
+				ID   string `json:"id"`
+				Type string `json:"type"`
+				URI  string `json:"uri"`
+			} `json:"added_by"`
+			IsLocal      bool        `json:"is_local"`
+			PrimaryColor interface{} `json:"primary_color"`
+			Track        struct {
+				Album struct {
+					AlbumType string `json:"album_type"`
+					Artists   []struct {
+						ExternalUrls struct {
+							Spotify string `json:"spotify"`
+						} `json:"external_urls"`
+						Href string `json:"href"`
+						ID   string `json:"id"`
+						Name string `json:"name"`
+						Type string `json:"type"`
+						URI  string `json:"uri"`
+					} `json:"artists"`
+					AvailableMarkets []string `json:"available_markets"`
+					ExternalUrls     struct {
+						Spotify string `json:"spotify"`
+					} `json:"external_urls"`
+					Href   string `json:"href"`
+					ID     string `json:"id"`
+					Images []struct {
+						Height int    `json:"height"`
+						URL    string `json:"url"`
+						Width  int    `json:"width"`
+					} `json:"images"`
+					Name                 string `json:"name"`
+					ReleaseDate          string `json:"release_date"`
+					ReleaseDatePrecision string `json:"release_date_precision"`
+					TotalTracks          int    `json:"total_tracks"`
+					Type                 string `json:"type"`
+					URI                  string `json:"uri"`
+				} `json:"album"`
+				Artists []struct {
+					ExternalUrls struct {
+						Spotify string `json:"spotify"`
+					} `json:"external_urls"`
+					Href string `json:"href"`
+					ID   string `json:"id"`
+					Name string `json:"name"`
+					Type string `json:"type"`
+					URI  string `json:"uri"`
+				} `json:"artists"`
+				AvailableMarkets []string `json:"available_markets"`
+				DiscNumber       int      `json:"disc_number"`
+				DurationMs       int      `json:"duration_ms"`
+				Episode          bool     `json:"episode"`
+				Explicit         bool     `json:"explicit"`
+				ExternalIds      struct {
+					Isrc string `json:"isrc"`
+				} `json:"external_ids"`
+				ExternalUrls struct {
+					Spotify string `json:"spotify"`
+				} `json:"external_urls"`
+				Href        string `json:"href"`
+				ID          string `json:"id"`
+				IsLocal     bool   `json:"is_local"`
+				Name        string `json:"name"`
+				Popularity  int    `json:"popularity"`
+				PreviewURL  string `json:"preview_url"`
+				Track       bool   `json:"track"`
+				TrackNumber int    `json:"track_number"`
+				Type        string `json:"type"`
+				URI         string `json:"uri"`
+			} `json:"track"`
+			VideoThumbnail struct {
+				URL interface{} `json:"url"`
+			} `json:"video_thumbnail"`
+		} `json:"items"`
+		Limit    int         `json:"limit"`
+		Next     interface{} `json:"next"`
+		Offset   int         `json:"offset"`
+		Previous interface{} `json:"previous"`
+		Total    int         `json:"total"`
+	} `json:"tracks"`
+	Type string `json:"type"`
+	URI  string `json:"uri"`
+}
+
 func getSpotifyPlaylist(bearerToken, playlistID string) (spotifyJSON Spotify, err error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.spotify.com/v1/playlists/%s/tracks?limit=100", playlistID), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.spotify.com/v1/playlists/%s", playlistID), nil)
 	if err != nil {
 		return
 	}
