@@ -92,13 +92,23 @@ func run(bearerToken, playlistID string) (err error) {
 	if err != nil {
 		return
 	}
+
 	if len(spotifyJSON.Tracks.Items) == 0 {
 		err = fmt.Errorf("found no tracks")
 		return
 	}
 
-	os.Mkdir(spotifyJSON.Name, 0644)
-	os.Chdir(spotifyJSON.Name)
+	if _, err = os.Stat(spotifyJSON.Name); os.IsNotExist(err) {
+		err = os.Mkdir(spotifyJSON.Name, 0644)
+		if err != nil {
+			return
+		}
+	}
+
+	err = os.Chdir(spotifyJSON.Name)
+	if err != nil {
+		return
+	}
 
 	bJSON, _ := json.MarshalIndent(spotifyJSON, "", " ")
 	ioutil.WriteFile(time.Now().Format("2006-01-02")+".json", bJSON, 0644)
