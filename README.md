@@ -58,6 +58,10 @@ $ spotifydownload -playlist PLAYLIST
 ```
 
 
+## Todo
+
+- [ ] Store `index.js` in the code and write it to disk whenever it will be used
+- [ ] Store bearer key for multiple users, and discard when it stops working
 
 ## Contributing
 
