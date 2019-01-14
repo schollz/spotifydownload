@@ -14,6 +14,8 @@ alt="Version"></a> </p>
 
 *spotifydownload* is an [open-source](https://github.com/schollz/spotifydownload) tool that makes it easy to download your Spotify playlists. It works by using a Bearer token to get the playlist from Spotify and then uses [getsong](https://github.com/schollz/getsong) to find the corect song and download it and convert it to an mp3.
 
+## This code is under development and (probably) doesn't work yet!
+
 # Install
 
 Get the [latest release](https://github.com/schollz/spotifydownload/releases/latest) or install with `go get`:
