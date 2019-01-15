@@ -63,7 +63,9 @@ $ spotifydownload -playlist PLAYLIST
 ## Todo
 
 - [ ] Store `index.js` in the code and write it to disk whenever it will be used
-- [ ] Store bearer key for multiple users, and discard when it stops working
+- [ ] Store bearer key for multiple uses, and discard when it stops working
+- [ ] Check the api for the update getsong
+- [ ] On first run, if using auto bearer, prompt for password and user name. Encrypt and store in the home directory, along with an encryption key.
 
 ## Contributing
 
