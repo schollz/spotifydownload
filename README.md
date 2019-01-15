@@ -22,13 +22,9 @@ Get the [latest release](https://github.com/schollz/spotifydownload/releases/lat
 go get github.com/schollz/spotifydownload
 ```
 
-_Optional:_ If you want to automatically get the Bearer token you will need to install `puppeteer` in the folder you are going to run the program:
-
-```
-npm i puppeteer
-```
-
 # Usage
+
+## Basic usage
 
 To run simply do
 
@@ -42,7 +38,15 @@ and you'll be prompted to enter in your Bearer key and your Spotify playlist ID.
 $ spotifydownload -bearer BEARER -playlist PLAYLIST
 ```
 
-Or, if you followed the optional step above to install `puppeteer` you can add a `creds.js` file :
+## Advanced usage
+
+If you want to automatically get the Bearer token you will need to install `puppeteer` in the folder you are going to run the program:
+
+```
+npm i puppeteer
+```
+
+And then add a `creds.js` file into the same folder:
 
 ```
 module.exports = {
@@ -56,7 +60,6 @@ and the program will automatically get the Bearer key for you when you run:
 ```bash
 $ spotifydownload -playlist PLAYLIST
 ```
-
 
 
 ## Contributing

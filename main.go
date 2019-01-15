@@ -9,9 +9,11 @@ import (
 	"net/http"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"time"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/schollz/getsong"
 )
 
@@ -37,11 +39,30 @@ func getBearerKeyUsingChromeHeadless() (bearer string, err error) {
 	return
 }
 
+var debug bool
+
 func main() {
 	var playlistID, bearerToken string
 	flag.StringVar(&playlistID, "playlist", "", "The Spotify playlist ID")
 	flag.StringVar(&bearerToken, "bearer", "", "Bearer token to use for Spotify")
+	flag.BoolVar(&debug, "debug", false, "Debug mode")
 	flag.Parse()
+
+	// first try to find saved bearer token
+	homeDir, err := homedir.Dir()
+	if err != nil {
+		panic(err)
+	}
+	cacheFolder := path.Join(homeDir, ".cache", "spotifydownload")
+	os.MkdirAll(cacheFolder, 0644)
+	if _, err := os.Stat(path.Join(cacheFolder, "bearer.token")); err == nil {
+		bearerBytes, errRead := ioutil.ReadFile(path.Join(cacheFolder, "bearer.token"))
+		if errRead != nil {
+			panic(errRead)
+		}
+		bearerToken = string(bearerBytes)
+		fmt.Println("Loaded previous Bearer key")
+	}
 
 	if bearerToken == "" {
 		var errBearerFromNode error
@@ -51,21 +72,49 @@ func main() {
 		}
 	}
 
+	_, errTestBearer := getCurrentPlaylists(bearerToken)
+	if errTestBearer != nil {
+		// bearer doesn't work, get another
+		fmt.Println("Current bearer key has expired")
+		bearerToken = ""
+	}
+
 	if bearerToken == "" {
-		fmt.Print(`Go to the Spotify Developer page: https://developer.spotify.com/console/get-playlist-tracks
+		fmt.Print(`Go to the Spotify Developer page: 
+		
+		https://developer.spotify.com/console/get-playlist-tracks
 
-At the bottom click "Get Token" and choose the playlist permissions 
-"playlist-read-private" and "playlist-read-collaborative". 
-Press "Request Token" and you'll be redirected to a Sign-in page.
+		At the bottom click "Get Token" and choose the playlist permissions 
+		"playlist-read-private" and "playlist-read-collaborative". 
+		Press "Request Token" and you'll be redirected to a Sign-in page.
+		
+		Sign in with your credentials and then you'll be redirected back to 
+		the Spotify Developer page. Your Bearer key is at the bottom 
+		under "OAuth Token".
 
-Sign in with your credentials and then you'll be redirected back to 
-the Spotify Developer page. Your Bearer key is at the bottom 
-under "OAuth Token".
+`)
+		for {
+			fmt.Println(`Copy that bearer token here: `)
+			reader := bufio.NewReader(os.Stdin)
+			bearerToken, _ = reader.ReadString('\n')
+			bearerToken = strings.TrimSpace(bearerToken)
+			_, errTestBearer := getCurrentPlaylists(bearerToken)
+			if errTestBearer != nil {
+				// bearer doesn't work, get another
+				fmt.Println("Incorrect Bearer key")
+				bearerToken = ""
+			}
+			if bearerToken != "" {
+				break
+			}
+		}
 
-Copy that bearer token here: `)
-		reader := bufio.NewReader(os.Stdin)
-		bearerToken, _ = reader.ReadString('\n')
-		bearerToken = strings.TrimSpace(bearerToken)
+	}
+
+	// save correct Bearer key
+	err = ioutil.WriteFile(path.Join(cacheFolder, "bearer.token"), []byte(bearerToken), 0644)
+	if err != nil {
+		panic(err)
 	}
 
 	if playlistID == "" {
@@ -81,7 +130,7 @@ The playlist ID you need is "Y." Enter that playlist ID here: `)
 		playlistID = strings.TrimSpace(playlistID)
 	}
 
-	err := run(bearerToken, playlistID)
+	err = run(bearerToken, playlistID)
 	if err != nil {
 		fmt.Printf("\nProblem with your bearer key or your playlist ID: %s\n", err.Error())
 	}
@@ -125,11 +174,11 @@ func run(bearerToken, playlistID string) (err error) {
 		go func(jobs <-chan Track, results chan<- Result) {
 			for j := range jobs {
 				fmt.Printf("Downloading %s by %s...\n", j.title, j.artist)
-				fname, err := getsong.GetSong(getsong.Options{
-					Title:        j.title,
-					Artist:       j.artist,
-					Duration:     j.duration,
+				fname, err := getsong.GetSong(j.title, j.artist, getsong.Options{
+					// Duration:      j.duration,
 					ShowProgress: true,
+					Debug:        debug,
+					// DoNotDownload: true,
 				})
 				fmt.Printf("Downloaded %s.\n", fname)
 
@@ -301,5 +350,71 @@ func getSpotifyPlaylist(bearerToken, playlistID string) (spotifyJSON Spotify, er
 
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 	err = json.Unmarshal(bodyBytes, &spotifyJSON)
+	return
+}
+
+type UserPlaylists struct {
+	Href  string `json:"href"`
+	Items []struct {
+		Collaborative bool `json:"collaborative"`
+		ExternalUrls  struct {
+			Spotify string `json:"spotify"`
+		} `json:"external_urls"`
+		Href   string `json:"href"`
+		ID     string `json:"id"`
+		Images []struct {
+			Height interface{} `json:"height"`
+			URL    string      `json:"url"`
+			Width  interface{} `json:"width"`
+		} `json:"images"`
+		Name  string `json:"name"`
+		Owner struct {
+			DisplayName  string `json:"display_name"`
+			ExternalUrls struct {
+				Spotify string `json:"spotify"`
+			} `json:"external_urls"`
+			Href string `json:"href"`
+			ID   string `json:"id"`
+			Type string `json:"type"`
+			URI  string `json:"uri"`
+		} `json:"owner"`
+		PrimaryColor interface{} `json:"primary_color"`
+		Public       bool        `json:"public"`
+		SnapshotID   string      `json:"snapshot_id"`
+		Tracks       struct {
+			Href  string `json:"href"`
+			Total int    `json:"total"`
+		} `json:"tracks"`
+		Type string `json:"type"`
+		URI  string `json:"uri"`
+	} `json:"items"`
+	Limit    int         `json:"limit"`
+	Next     string      `json:"next"`
+	Offset   int         `json:"offset"`
+	Previous interface{} `json:"previous"`
+	Total    int         `json:"total"`
+}
+
+func getCurrentPlaylists(bearerToken string) (spotifyJSON UserPlaylists, err error) {
+	req, err := http.NewRequest("GET", "https://api.spotify.com/v1/me/playlists", nil)
+	if err != nil {
+		return
+	}
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Authorization", "Bearer "+bearerToken)
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 200 {
+		bodyBytes, _ := ioutil.ReadAll(resp.Body)
+		err = json.Unmarshal(bodyBytes, &spotifyJSON)
+	} else {
+		err = fmt.Errorf("get basic playlists received %d", resp.StatusCode)
+	}
 	return
 }
