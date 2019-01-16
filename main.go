@@ -54,14 +54,13 @@ func main() {
 		panic(err)
 	}
 	cacheFolder := path.Join(homeDir, ".cache", "spotifydownload")
-	os.MkdirAll(cacheFolder, 0644)
+	os.MkdirAll(cacheFolder, 0755)
 	if _, err := os.Stat(path.Join(cacheFolder, "bearer.token")); err == nil {
 		bearerBytes, errRead := ioutil.ReadFile(path.Join(cacheFolder, "bearer.token"))
-		if errRead != nil {
-			panic(errRead)
+		if errRead == nil {
+			bearerToken = string(bearerBytes)
+			fmt.Println("Loaded previous Bearer key")
 		}
-		bearerToken = string(bearerBytes)
-		fmt.Println("Loaded previous Bearer key")
 	}
 
 	if bearerToken == "" {
@@ -69,7 +68,10 @@ func main() {
 		bearerToken, errBearerFromNode = getBearerKeyUsingChromeHeadless()
 		if errBearerFromNode != nil {
 			bearerToken = ""
+		} else {
+			fmt.Println("Got Bearer key using node")
 		}
+
 	}
 
 	_, errTestBearer := getCurrentPlaylists(bearerToken)
@@ -112,7 +114,7 @@ func main() {
 	}
 
 	// save correct Bearer key
-	err = ioutil.WriteFile(path.Join(cacheFolder, "bearer.token"), []byte(bearerToken), 0644)
+	err = ioutil.WriteFile(path.Join(cacheFolder, "bearer.token"), []byte(bearerToken), 0755)
 	if err != nil {
 		panic(err)
 	}
@@ -148,7 +150,7 @@ func run(bearerToken, playlistID string) (err error) {
 	}
 
 	if _, err = os.Stat(spotifyJSON.Name); os.IsNotExist(err) {
-		err = os.Mkdir(spotifyJSON.Name, 0644)
+		err = os.Mkdir(spotifyJSON.Name, 0755)
 		if err != nil {
 			return
 		}
