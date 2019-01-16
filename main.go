@@ -59,7 +59,13 @@ func main() {
 		bearerBytes, errRead := ioutil.ReadFile(path.Join(cacheFolder, "bearer.token"))
 		if errRead == nil {
 			bearerToken = string(bearerBytes)
-			fmt.Println("Loaded previous Bearer key")
+			_, errTestBearer := getCurrentPlaylists(bearerToken)
+			if errTestBearer != nil {
+				// bearer doesn't work, get another
+				bearerToken = ""
+			} else {
+				fmt.Println("Loaded previous Bearer key")
+			}
 		}
 	}
 
