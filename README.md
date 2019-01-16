@@ -65,6 +65,7 @@ $ spotifydownload -playlist PLAYLIST
 
 ## Todo
 
+- [ ] Remove leftover .webm things in the folder
 - [ ] Store `index.js` in the code and write it to disk whenever it will be used
 - [x] Store bearer key for multiple uses, and discard when it stops working
 - [x] Check the api for the update getsong
