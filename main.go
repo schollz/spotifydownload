@@ -69,7 +69,8 @@ func main() {
 		}
 	}
 
-	if bearerToken == "" {
+	_, credsErr := os.Stat("creds.js")
+	if bearerToken == "" && credsErr == nil {
 		var errBearerFromNode error
 		bearerToken, errBearerFromNode = getBearerKeyUsingChromeHeadless()
 		if errBearerFromNode != nil {

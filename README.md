@@ -62,6 +62,13 @@ and the program will automatically get the Bearer key for you when you run:
 $ spotifydownload -playlist PLAYLIST
 ```
 
+Now you can easily schedule this to run using `crontab`, just edit it with `crontab -e` and add the line:
+
+```
+0 0 * * 0 cd /folder/to/spotifydownload &&  ./spotifydownload --playlist yourplaylistid
+```
+
+which will execute it every 7 days so that you will never lose any songs in your Release Radar or Discover Weekly.
 
 ## Todo
 
