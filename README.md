@@ -1,5 +1,7 @@
 <p align="center">
-<h2>spotifydownload</h2>
+<img
+    src="https://i.imgur.com/IjoGFnO.png"
+    width="260" border="0" alt="spotifydownload">
 <br>
 <a href="https://travis-ci.org/schollz/spotifydownload"><img
 src="https://img.shields.io/travis/schollz/spotifydownload.svg?style=flat-square"
