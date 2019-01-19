@@ -217,13 +217,13 @@ func main() {
 	flag.Parse()
 
 	if playlistURL == "" {
-		fmt.Print(`To get the playlist tracks, you'll first need the playlist ID. 
-To get the playlist ID, just right-click the playlist and goto 
+		fmt.Print(`To get the playlist tracks, you'll first need the playlist URL. 
+To get the playlist URL, just right-click the playlist and goto 
 Share -> Playlist URL. The URL will be something like
 
 https://open.spotify.com/user/X/playlist/Y?si=Z
 		
-Enter that playlist ID here: `)
+Enter that playlist URL here: `)
 		reader := bufio.NewReader(os.Stdin)
 		playlistURL, _ = reader.ReadString('\n')
 		playlistURL = strings.TrimSpace(playlistURL)

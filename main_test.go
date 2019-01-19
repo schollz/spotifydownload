@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -13,5 +12,4 @@ func TestGetTracks(t *testing.T) {
 	assert.Nil(t, err)
 	assert.Equal(t, 30, len(tracks))
 	assert.Equal(t, "Release Radar", playlistName)
-	fmt.Println(tracks[0])
 }
