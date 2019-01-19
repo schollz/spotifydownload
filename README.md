@@ -16,6 +16,8 @@ alt="Version"></a> </p>
 
 ![Example](.github/sdown.gif)
 
+Unlike other downloaders, there are no dependencies (other than ffmpeg which will automatically be installed onto your system when running the first time).
+
 # Install
 
 Get the [latest release](https://github.com/schollz/spotifydownload/releases/latest) or install with `go get`:
