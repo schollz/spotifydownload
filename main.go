@@ -23,10 +23,53 @@ type Result struct {
 }
 
 type Track struct {
-	title    string
-	artist   string
-	duration int
+	Title    string
+	Artist   string
 }
+
+
+// getStringInBetween Returns empty string if no start string found
+func getStringInBetween(str string, start string, end string) (result string) {
+	s := strings.Index(str, start)
+	if s == -1 {
+		return
+	}
+	s += len(start)
+	e := strings.Index(str[s:], end)
+	if s+e < len(str) && e > 0 {
+		result = str[s : s+e]
+	}
+	return
+}
+
+func getTracks(spotifyURL string) (tracks []Track, err error) {
+	req, err := http.NewRequest("GET", spotifyURL, nil)
+	if err != nil {
+		return
+	}
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return
+	}
+	defer resp.Body.Close()
+
+	tracks = []Track{}
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	for _, line := range strings.Split(string(bodyBytes), "\n") {
+		if strings.Contains(line, `tracklist-col name`) {
+			artist := getStringInBetween(line, `<span dir="auto">`, `<`)
+			foo := strings.Split(line, artist)
+			if len(foo) < 2 {
+				continue
+			}
+			title := getStringInBetween(foo[1], `<span dir="auto">`, `<`)
+			tracks = append(tracks,Track{title,artist})
+		}
+	}
+	return
+}
+
 
 func getBearerKeyUsingChromeHeadless() (bearer string, err error) {
 	cmd := exec.Command("node", "index.js")
@@ -145,8 +188,8 @@ The playlist ID you need is "Y." Enter that playlist ID here: `)
 	}
 }
 
-func run(bearerToken, playlistID string) (err error) {
-	spotifyJSON, err := getSpotifyPlaylist(bearerToken, playlistID)
+func run(playlistURL string) (err error) {
+	playlistName, tracks, err := getTracks(playlistURL)
 	if err != nil {
 		return
 	}
@@ -182,8 +225,8 @@ func run(bearerToken, playlistID string) (err error) {
 	for w := 0; w < workers; w++ {
 		go func(jobs <-chan Track, results chan<- Result) {
 			for j := range jobs {
-				fmt.Printf("Downloading %s by %s...\n", j.title, j.artist)
-				fname, err := getsong.GetSong(j.title, j.artist, getsong.Options{
+				fmt.Printf("Downloading %s by %s...\n", j.Title, j.Artist)
+				fname, err := getsong.GetSong(j.Title, j.Artist, getsong.Options{
 					// Duration:      j.duration,
 					ShowProgress: true,
 					Debug:        debug,
@@ -211,9 +254,9 @@ func run(bearerToken, playlistID string) (err error) {
 	for i := 0; i < len(tracksToDownload); i++ {
 		result := <-results
 		if result.err != nil {
-			fmt.Printf("Error with %s by %s: %s\n", result.track.title, result.track.artist, result.err)
+			fmt.Printf("Error with %s by %s: %s\n", result.track.Title, result.track.Artist, result.err)
 		} else {
-			fmt.Printf("Finished %s by %s\n", result.track.title, result.track.artist)
+			fmt.Printf("Finished %s by %s\n", result.track.Title, result.track.Artist)
 		}
 	}
 	return
