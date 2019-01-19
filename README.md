@@ -1,6 +1,6 @@
 <p align="center">
 <img
-    src="https://i.imgur.com/IjoGFnO.png"
+    src=".github/logo.png"
     width="260" border="0" alt="spotifydownload">
 <br>
 <a href="https://travis-ci.org/schollz/spotifydownload"><img
@@ -14,6 +14,7 @@ alt="Version"></a> </p>
 
 *spotifydownload* is an [open-source](https://github.com/schollz/spotifydownload) tool that makes it easy to download your Spotify playlists, using [getsong](https://github.com/schollz/getsong) to find the corect song and download it and convert it to an mp3.
 
+![Example](.github/sdown.gif)
 
 # Install
 
