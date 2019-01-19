@@ -1,15 +1,14 @@
 package main
 
 import (
+	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
-	"flag"
 	"net/http"
 	"os"
-	"os/exec"
 	"strings"
-	"bufio"
 	"time"
 
 	"github.com/schollz/getsong"
@@ -21,10 +20,10 @@ type Result struct {
 }
 
 type Track struct {
-	Title    string
-	Artist   string
+	Number int    `json:"number"`
+	Title  string `json:"title"`
+	Artist string `json:"artist"`
 }
-
 
 // getStringInBetween Returns empty string if no start string found
 func getStringInBetween(str string, start string, end string) (result string) {
@@ -179,16 +178,18 @@ func getTracks(spotifyURL string) (playlistName string, tracks []Track, err erro
 	tracks = []Track{}
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 	// fmt.Println(string(bodyBytes))
+	trackNum := 1
 	for _, line := range strings.Split(string(bodyBytes), "\n") {
-		if strings.Contains(line,`Spotify.Entity =`) {
-			data := strings.TrimSpace(strings.Split(line,`Spotify.Entity =`)[1])
+		if strings.Contains(line, `Spotify.Entity =`) {
+			data := strings.TrimSpace(strings.Split(line, `Spotify.Entity =`)[1])
 			data = data[:len(data)-1]
 			var spotifyJSON SpotifyTracks
-			err = json.Unmarshal([]byte(data),&spotifyJSON)
+			err = json.Unmarshal([]byte(data), &spotifyJSON)
 			playlistName = spotifyJSON.Name
 			if err == nil {
 				for _, track := range spotifyJSON.Tracks.Items {
-					tracks = append(tracks,Track{track.Track.Name,track.Track.Artists[0].Name})
+					tracks = append(tracks, Track{trackNum, track.Track.Name, track.Track.Artists[0].Name})
+					trackNum += 1
 				}
 			}
 		}
@@ -196,34 +197,28 @@ func getTracks(spotifyURL string) (playlistName string, tracks []Track, err erro
 	return
 }
 
-
-func getBearerKeyUsingChromeHeadless() (bearer string, err error) {
-	cmd := exec.Command("node", "index.js")
-	var bearerBytes []byte
-	bearerBytes, _ = cmd.CombinedOutput()
-	bearer = strings.TrimSpace(string(bearerBytes))
-	if strings.Contains(bearer, `Cannot find module 'puppeteer'`) {
-		err = fmt.Errorf("need to install puppeteer")
-	}
-	return
-}
-
-var debug bool
+var debug, verbose bool
 
 func main() {
 	var playlistURL string
 	flag.StringVar(&playlistURL, "playlist", "", "The Spotify playlist URL link")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
+	flag.BoolVar(&verbose, "verbose", false, "Verbose mode")
 	flag.Parse()
 
 	if playlistURL == "" {
-		fmt.Print(`To get the playlist tracks, you'll first need the playlist URL. 
-To get the playlist URL, just right-click the playlist and goto 
-Share -> Playlist URL. The URL will be something like
+		fmt.Print(`
 
-https://open.spotify.com/user/X/playlist/Y?si=Z
+Enter your Spotify Playlist link.
+
+To get the Spotify URL link you can right click on the playlist. 
+If you are using the Desktop client, then you'll see a button 
+"Shared > 🔗 Copy Playlist Link", or in the Web browser 
+you'll see "Copy Playlist Link".
+
+Enter the Spotify Playlist link here:
 		
-Enter that playlist URL here: `)
+`)
 		reader := bufio.NewReader(os.Stdin)
 		playlistURL, _ = reader.ReadString('\n')
 		playlistURL = strings.TrimSpace(playlistURL)
@@ -261,7 +256,7 @@ func run(playlistURL string) (err error) {
 	bJSON, _ := json.MarshalIndent(tracks, "", " ")
 	ioutil.WriteFile(time.Now().Format("2006-01-02")+".json", bJSON, 0644)
 
-	workers := 30
+	workers := 1
 
 	tracksToDownload := make([]string, len(tracks))
 
@@ -272,13 +267,17 @@ func run(playlistURL string) (err error) {
 	for w := 0; w < workers; w++ {
 		go func(jobs <-chan Track, results chan<- Result) {
 			for j := range jobs {
-				fmt.Printf("Downloading %s by %s...\n", j.Title, j.Artist)
-				fname, err := getsong.GetSong(j.Title, j.Artist, getsong.Options{
-					ShowProgress: true,
+				fmt.Printf("%2d) Getting '%s' by '%s'..", j.Number, j.Title, j.Artist)
+				_, err := getsong.GetSong(j.Title, j.Artist, getsong.Options{
+					ShowProgress: debug,
 					Debug:        debug,
 					// DoNotDownload: true,
 				})
-				fmt.Printf("Downloaded %s.\n", fname)
+				if err != nil {
+					fmt.Printf("..error: %s\n", err)
+				} else {
+					fmt.Printf("..done.\n")
+				}
 
 				results <- Result{
 					track: j,
@@ -293,13 +292,9 @@ func run(playlistURL string) (err error) {
 	}
 	close(jobs)
 
+	fmt.Printf("Downloading %d tracks in the '%s' playlist\n", len(tracks), playlistName)
 	for i := 0; i < len(tracksToDownload); i++ {
-		result := <-results
-		if result.err != nil {
-			fmt.Printf("Error with %s by %s: %s\n", result.track.Title, result.track.Artist, result.err)
-		} else {
-			fmt.Printf("Finished %s by %s\n", result.track.Title, result.track.Artist)
-		}
+		<-results
 	}
 	return
 }

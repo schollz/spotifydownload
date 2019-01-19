@@ -7,7 +7,7 @@
 src="https://img.shields.io/travis/schollz/spotifydownload.svg?style=flat-square"
 alt="Build Status"></a> <a
 href="https://github.com/schollz/spotifydownload/releases/latest"><img
-src="https://img.shields.io/badge/version-0.3.0-brightgreen.svg?style=flat-square"
+src="https://img.shields.io/badge/version-0.4.0-brightgreen.svg?style=flat-square"
 alt="Version"></a> </p>
 
 <p align="center">Automatically download your Spotify playlists.</p>
@@ -25,7 +25,6 @@ go get github.com/schollz/spotifydownload
 
 # Usage
 
-## Basic usage
 
 To run simply do
 
@@ -33,7 +32,10 @@ To run simply do
 $ spotifydownload
 ```
 
-and you'll be prompted to enter your Spotify playlist URL. If you already know your playlist URL you can enter it:
+and you'll be prompted with instructions to get the Spotify URL link. To get the Spotify URL link you can right click on the playlist. If you are using the Desktop client, then you'll see a button "Shared > 🔗 Copy Playlist Link", or in the Web browser you'll see "Copy Playlist Link". Clicking that will copy the Spotify Playlist link to the clipboard.
+
+
+If you already know your playlist URL you can enter it:
 
 ```bash
 $ spotifydownload -playlist PLAYLIST_URL
