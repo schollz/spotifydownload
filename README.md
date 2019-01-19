@@ -12,7 +12,7 @@ alt="Version"></a> </p>
 
 <p align="center">Automatically download your Spotify playlists.</p>
 
-*spotifydownload* is an [open-source](https://github.com/schollz/spotifydownload) tool that makes it easy to download your Spotify playlists. It works by using a Bearer token to get the playlist from Spotify and then uses [getsong](https://github.com/schollz/getsong) to find the corect song and download it and convert it to an mp3.
+*spotifydownload* is an [open-source](https://github.com/schollz/spotifydownload) tool that makes it easy to download your Spotify playlists, using [getsong](https://github.com/schollz/getsong) to find the corect song and download it and convert it to an mp3.
 
 
 # Install
@@ -33,49 +33,19 @@ To run simply do
 $ spotifydownload
 ```
 
-and you'll be prompted to enter in your Bearer key and your Spotify playlist ID. If you already know your Bearer key and playlist ID you can enter these
+and you'll be prompted to enter your Spotify playlist URL. If you already know your playlist URL you can enter it:
 
 ```bash
-$ spotifydownload -bearer BEARER -playlist PLAYLIST
-```
-
-## Advanced usage
-
-If you want to automatically get the Bearer token you will need to install `puppeteer` in the folder you are going to run the program:
-
-```
-npm i puppeteer
-```
-
-And then add a `creds.js` file into the same folder:
-
-```
-module.exports = {
-    username: 'SPOTIFY_USERNAME',
-    password: 'SPOTIFY_PASSWORD'
-}
-```
-
-and the program will automatically get the Bearer key for you when you run:
-
-```bash
-$ spotifydownload -playlist PLAYLIST
+$ spotifydownload -playlist PLAYLIST_URL
 ```
 
 Now you can easily schedule this to run using `crontab`, just edit it with `crontab -e` and add the line:
 
 ```
-0 0 * * 0 cd /folder/to/spotifydownload &&  ./spotifydownload --playlist yourplaylistid
+0 0 * * 0 cd /folder/to/spotifydownload &&  ./spotifydownload --playlist PLAYLIST_URL
 ```
 
 which will execute it every 7 days so that you will never lose any songs in your Release Radar or Discover Weekly.
-
-## Todo
-
-- [ ] Remove leftover .webm things in the folder
-- [ ] Store `index.js` in the code and write it to disk whenever it will be used
-- [x] Store bearer key for multiple uses, and discard when it stops working
-- [x] Check the api for the update getsong
 
 ## Contributing
 
