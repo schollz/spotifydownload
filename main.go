@@ -1,19 +1,16 @@
 package main
 
 import (
-	"bufio"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"io/ioutil"
+	"flag"
 	"net/http"
 	"os"
 	"os/exec"
-	"path"
 	"strings"
 	"time"
 
-	"github.com/mitchellh/go-homedir"
 	"github.com/schollz/getsong"
 )
 
@@ -42,7 +39,131 @@ func getStringInBetween(str string, start string, end string) (result string) {
 	return
 }
 
-func getTracks(spotifyURL string) (tracks []Track, err error) {
+type SpotifyTracks struct {
+	Collaborative bool   `json:"collaborative"`
+	Description   string `json:"description"`
+	ExternalUrls  struct {
+		Spotify string `json:"spotify"`
+	} `json:"external_urls"`
+	Followers struct {
+		Href  interface{} `json:"href"`
+		Total int         `json:"total"`
+	} `json:"followers"`
+	Href   string `json:"href"`
+	ID     string `json:"id"`
+	Images []struct {
+		Height int    `json:"height"`
+		URL    string `json:"url"`
+		Width  int    `json:"width"`
+	} `json:"images"`
+	Name  string `json:"name"`
+	Owner struct {
+		DisplayName  string `json:"display_name"`
+		ExternalUrls struct {
+			Spotify string `json:"spotify"`
+		} `json:"external_urls"`
+		Href string `json:"href"`
+		ID   string `json:"id"`
+		Type string `json:"type"`
+		URI  string `json:"uri"`
+	} `json:"owner"`
+	PrimaryColor interface{} `json:"primary_color"`
+	Public       bool        `json:"public"`
+	SnapshotID   string      `json:"snapshot_id"`
+	Tracks       struct {
+		Href  string `json:"href"`
+		Items []struct {
+			AddedAt time.Time `json:"added_at"`
+			AddedBy struct {
+				ExternalUrls struct {
+					Spotify string `json:"spotify"`
+				} `json:"external_urls"`
+				Href string `json:"href"`
+				ID   string `json:"id"`
+				Type string `json:"type"`
+				URI  string `json:"uri"`
+			} `json:"added_by"`
+			IsLocal      bool        `json:"is_local"`
+			PrimaryColor interface{} `json:"primary_color"`
+			Track        struct {
+				Album struct {
+					AlbumType string `json:"album_type"`
+					Artists   []struct {
+						ExternalUrls struct {
+							Spotify string `json:"spotify"`
+						} `json:"external_urls"`
+						Href string `json:"href"`
+						ID   string `json:"id"`
+						Name string `json:"name"`
+						Type string `json:"type"`
+						URI  string `json:"uri"`
+					} `json:"artists"`
+					ExternalUrls struct {
+						Spotify string `json:"spotify"`
+					} `json:"external_urls"`
+					Href   string `json:"href"`
+					ID     string `json:"id"`
+					Images []struct {
+						Height int    `json:"height"`
+						URL    string `json:"url"`
+						Width  int    `json:"width"`
+					} `json:"images"`
+					Name                 string `json:"name"`
+					ReleaseDate          string `json:"release_date"`
+					ReleaseDatePrecision string `json:"release_date_precision"`
+					TotalTracks          int    `json:"total_tracks"`
+					Type                 string `json:"type"`
+					URI                  string `json:"uri"`
+				} `json:"album"`
+				Artists []struct {
+					ExternalUrls struct {
+						Spotify string `json:"spotify"`
+					} `json:"external_urls"`
+					Href string `json:"href"`
+					ID   string `json:"id"`
+					Name string `json:"name"`
+					Type string `json:"type"`
+					URI  string `json:"uri"`
+				} `json:"artists"`
+				DiscNumber  int  `json:"disc_number"`
+				DurationMs  int  `json:"duration_ms"`
+				Episode     bool `json:"episode"`
+				Explicit    bool `json:"explicit"`
+				ExternalIds struct {
+					Isrc string `json:"isrc"`
+				} `json:"external_ids"`
+				ExternalUrls struct {
+					Spotify string `json:"spotify"`
+				} `json:"external_urls"`
+				Href        string `json:"href"`
+				ID          string `json:"id"`
+				IsLocal     bool   `json:"is_local"`
+				IsPlayable  bool   `json:"is_playable"`
+				Name        string `json:"name"`
+				Popularity  int    `json:"popularity"`
+				PreviewURL  string `json:"preview_url"`
+				Track       bool   `json:"track"`
+				TrackNumber int    `json:"track_number"`
+				Type        string `json:"type"`
+				URI         string `json:"uri"`
+			} `json:"track"`
+			VideoThumbnail struct {
+				URL interface{} `json:"url"`
+			} `json:"video_thumbnail"`
+		} `json:"items"`
+		Limit    int         `json:"limit"`
+		Next     interface{} `json:"next"`
+		Offset   int         `json:"offset"`
+		Previous interface{} `json:"previous"`
+		Total    int         `json:"total"`
+	} `json:"tracks"`
+	Type                 string `json:"type"`
+	URI                  string `json:"uri"`
+	Etag                 string `json:"etag"`
+	LastCheckedTimestamp int    `json:"last-checked-timestamp"`
+}
+
+func getTracks(spotifyURL string) (playlistName string, tracks []Track, err error) {
 	req, err := http.NewRequest("GET", spotifyURL, nil)
 	if err != nil {
 		return
@@ -56,15 +177,17 @@ func getTracks(spotifyURL string) (tracks []Track, err error) {
 
 	tracks = []Track{}
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	fmt.Println(string(bodyBytes))
 	for _, line := range strings.Split(string(bodyBytes), "\n") {
-		if strings.Contains(line, `tracklist-col name`) {
-			artist := getStringInBetween(line, `<span dir="auto">`, `<`)
-			foo := strings.Split(line, artist)
-			if len(foo) < 2 {
-				continue
+		if strings.Contains(line,`Spotify.Entity =`) {
+			data := strings.TrimSpace(strings.Split(line,`Spotify.Entity =`)[1])
+			data = data[:len(data)-1]
+			fmt.Println(data)
+			var spotifyJSON SpotifyTracks
+			err = json.Unmarshal([]byte(data),&spotifyJSON)
+			if err == nil {
+				for track := range spotifyJSON.
 			}
-			title := getStringInBetween(foo[1], `<span dir="auto">`, `<`)
-			tracks = append(tracks,Track{title,artist})
 		}
 	}
 	return
@@ -85,104 +208,103 @@ func getBearerKeyUsingChromeHeadless() (bearer string, err error) {
 var debug bool
 
 func main() {
-	var playlistID, bearerToken string
-	flag.StringVar(&playlistID, "playlist", "", "The Spotify playlist ID")
-	flag.StringVar(&bearerToken, "bearer", "", "Bearer token to use for Spotify")
+	var playlistURL string
+	flag.StringVar(&playlistURL, "playlist", "", "The Spotify playlist ID")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
 	flag.Parse()
 
-	// first try to find saved bearer token
-	homeDir, err := homedir.Dir()
-	if err != nil {
-		panic(err)
-	}
-	cacheFolder := path.Join(homeDir, ".cache", "spotifydownload")
-	os.MkdirAll(cacheFolder, 0755)
-	if _, err := os.Stat(path.Join(cacheFolder, "bearer.token")); err == nil {
-		bearerBytes, errRead := ioutil.ReadFile(path.Join(cacheFolder, "bearer.token"))
-		if errRead == nil {
-			bearerToken = string(bearerBytes)
-			_, errTestBearer := getCurrentPlaylists(bearerToken)
-			if errTestBearer != nil {
-				// bearer doesn't work, get another
-				bearerToken = ""
-			} else {
-				fmt.Println("Loaded previous Bearer key")
-			}
-		}
-	}
+// 	// first try to find saved bearer token
+// 	homeDir, err := homedir.Dir()
+// 	if err != nil {
+// 		panic(err)
+// 	}
+// 	cacheFolder := path.Join(homeDir, ".cache", "spotifydownload")
+// 	os.MkdirAll(cacheFolder, 0755)
+// 	if _, err := os.Stat(path.Join(cacheFolder, "bearer.token")); err == nil {
+// 		bearerBytes, errRead := ioutil.ReadFile(path.Join(cacheFolder, "bearer.token"))
+// 		if errRead == nil {
+// 			bearerToken = string(bearerBytes)
+// 			_, errTestBearer := getCurrentPlaylists(bearerToken)
+// 			if errTestBearer != nil {
+// 				// bearer doesn't work, get another
+// 				bearerToken = ""
+// 			} else {
+// 				fmt.Println("Loaded previous Bearer key")
+// 			}
+// 		}
+// 	}
 
-	_, credsErr := os.Stat("creds.js")
-	if bearerToken == "" && credsErr == nil {
-		var errBearerFromNode error
-		bearerToken, errBearerFromNode = getBearerKeyUsingChromeHeadless()
-		if errBearerFromNode != nil {
-			bearerToken = ""
-		} else {
-			fmt.Println("Got Bearer key using node")
-		}
+// 	_, credsErr := os.Stat("creds.js")
+// 	if bearerToken == "" && credsErr == nil {
+// 		var errBearerFromNode error
+// 		bearerToken, errBearerFromNode = getBearerKeyUsingChromeHeadless()
+// 		if errBearerFromNode != nil {
+// 			bearerToken = ""
+// 		} else {
+// 			fmt.Println("Got Bearer key using node")
+// 		}
 
-	}
+// 	}
 
-	_, errTestBearer := getCurrentPlaylists(bearerToken)
-	if errTestBearer != nil {
-		// bearer doesn't work, get another
-		fmt.Println("Current bearer key has expired")
-		bearerToken = ""
-	}
+// 	_, errTestBearer := getCurrentPlaylists(bearerToken)
+// 	if errTestBearer != nil {
+// 		// bearer doesn't work, get another
+// 		fmt.Println("Current bearer key has expired")
+// 		bearerToken = ""
+// 	}
 
-	if bearerToken == "" {
-		fmt.Print(`Go to the Spotify Developer page: 
+// 	if bearerToken == "" {
+// 		fmt.Print(`Go to the Spotify Developer page: 
 		
-		https://developer.spotify.com/console/get-playlist-tracks
+// 		https://developer.spotify.com/console/get-playlist-tracks
 
-		At the bottom click "Get Token" and choose the playlist permissions 
-		"playlist-read-private" and "playlist-read-collaborative". 
-		Press "Request Token" and you'll be redirected to a Sign-in page.
+// 		At the bottom click "Get Token" and choose the playlist permissions 
+// 		"playlist-read-private" and "playlist-read-collaborative". 
+// 		Press "Request Token" and you'll be redirected to a Sign-in page.
 		
-		Sign in with your credentials and then you'll be redirected back to 
-		the Spotify Developer page. Your Bearer key is at the bottom 
-		under "OAuth Token".
+// 		Sign in with your credentials and then you'll be redirected back to 
+// 		the Spotify Developer page. Your Bearer key is at the bottom 
+// 		under "OAuth Token".
 
-`)
-		for {
-			fmt.Println(`Copy that bearer token here: `)
-			reader := bufio.NewReader(os.Stdin)
-			bearerToken, _ = reader.ReadString('\n')
-			bearerToken = strings.TrimSpace(bearerToken)
-			_, errTestBearer := getCurrentPlaylists(bearerToken)
-			if errTestBearer != nil {
-				// bearer doesn't work, get another
-				fmt.Println("Incorrect Bearer key")
-				bearerToken = ""
-			}
-			if bearerToken != "" {
-				break
-			}
-		}
+// `)
+// 		for {
+// 			fmt.Println(`Copy that bearer token here: `)
+// 			reader := bufio.NewReader(os.Stdin)
+// 			bearerToken, _ = reader.ReadString('\n')
+// 			bearerToken = strings.TrimSpace(bearerToken)
+// 			_, errTestBearer := getCurrentPlaylists(bearerToken)
+// 			if errTestBearer != nil {
+// 				// bearer doesn't work, get another
+// 				fmt.Println("Incorrect Bearer key")
+// 				bearerToken = ""
+// 			}
+// 			if bearerToken != "" {
+// 				break
+// 			}
+// 		}
 
-	}
+// 	}
 
-	// save correct Bearer key
-	err = ioutil.WriteFile(path.Join(cacheFolder, "bearer.token"), []byte(bearerToken), 0755)
-	if err != nil {
-		panic(err)
-	}
+// 	// save correct Bearer key
+// 	err = ioutil.WriteFile(path.Join(cacheFolder, "bearer.token"), []byte(bearerToken), 0755)
+// 	if err != nil {
+// 		panic(err)
+// 	}
 
-	if playlistID == "" {
-		fmt.Print(`To get the playlist tracks, you'll first need the playlist ID. 
-To get the playlist ID, just right-click the playlist and goto 
-Share -> Playlist URL. The URL will be something like
+// 	if playlistID == "" {
+// 		fmt.Print(`To get the playlist tracks, you'll first need the playlist ID. 
+// To get the playlist ID, just right-click the playlist and goto 
+// Share -> Playlist URL. The URL will be something like
 
-https://open.spotify.com/user/X/playlist/Y?si=Z
+// https://open.spotify.com/user/X/playlist/Y?si=Z
 		
-The playlist ID you need is "Y." Enter that playlist ID here: `)
-		reader := bufio.NewReader(os.Stdin)
-		playlistID, _ = reader.ReadString('\n')
-		playlistID = strings.TrimSpace(playlistID)
-	}
+// The playlist ID you need is "Y." Enter that playlist ID here: `)
+// 		reader := bufio.NewReader(os.Stdin)
+// 		playlistID, _ = reader.ReadString('\n')
+// 		playlistID = strings.TrimSpace(playlistID)
+// 	}
 
-	err = run(bearerToken, playlistID)
+	err := run(playlistURL)
 	if err != nil {
 		fmt.Printf("\nProblem with your bearer key or your playlist ID: %s\n", err.Error())
 	}
@@ -194,29 +316,29 @@ func run(playlistURL string) (err error) {
 		return
 	}
 
-	if len(spotifyJSON.Tracks.Items) == 0 {
+	if len(tracks) == 0 {
 		err = fmt.Errorf("found no tracks")
 		return
 	}
 
-	if _, err = os.Stat(spotifyJSON.Name); os.IsNotExist(err) {
-		err = os.Mkdir(spotifyJSON.Name, 0755)
+	if _, err = os.Stat(playlistName); os.IsNotExist(err) {
+		err = os.Mkdir(playlistName, 0755)
 		if err != nil {
 			return
 		}
 	}
 
-	err = os.Chdir(spotifyJSON.Name)
+	err = os.Chdir(playlistName)
 	if err != nil {
 		return
 	}
 
-	bJSON, _ := json.MarshalIndent(spotifyJSON, "", " ")
+	bJSON, _ := json.MarshalIndent(tracks, "", " ")
 	ioutil.WriteFile(time.Now().Format("2006-01-02")+".json", bJSON, 0644)
 
 	workers := 30
 
-	tracksToDownload := make([]string, len(spotifyJSON.Tracks.Items))
+	tracksToDownload := make([]string, len(tracks))
 
 	jobs := make(chan Track, len(tracksToDownload))
 
@@ -227,7 +349,6 @@ func run(playlistURL string) (err error) {
 			for j := range jobs {
 				fmt.Printf("Downloading %s by %s...\n", j.Title, j.Artist)
 				fname, err := getsong.GetSong(j.Title, j.Artist, getsong.Options{
-					// Duration:      j.duration,
 					ShowProgress: true,
 					Debug:        debug,
 					// DoNotDownload: true,
@@ -242,12 +363,8 @@ func run(playlistURL string) (err error) {
 		}(jobs, results)
 	}
 
-	for _, song := range spotifyJSON.Tracks.Items {
-		jobs <- Track{
-			title:    song.Track.Name,
-			artist:   song.Track.Artists[0].Name,
-			duration: int(song.Track.DurationMs / 1000),
-		}
+	for _, track := range tracks {
+		jobs <- track
 	}
 	close(jobs)
 
