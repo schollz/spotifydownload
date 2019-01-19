@@ -7,7 +7,7 @@
 src="https://img.shields.io/travis/schollz/spotifydownload.svg?style=flat-square"
 alt="Build Status"></a> <a
 href="https://github.com/schollz/spotifydownload/releases/latest"><img
-src="https://img.shields.io/badge/version-0.2.0-brightgreen.svg?style=flat-square"
+src="https://img.shields.io/badge/version-0.3.0-brightgreen.svg?style=flat-square"
 alt="Version"></a> </p>
 
 <p align="center">Automatically download your Spotify playlists.</p>
