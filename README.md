@@ -5,7 +5,9 @@
 <br>
 <a href="https://travis-ci.org/schollz/spotifydownload"><img
 src="https://img.shields.io/travis/schollz/spotifydownload.svg?style=flat-square"
-alt="Build Status"></a> <a
+alt="Build Status"></a> 
+<a href="https://gocover.io/github.com/schollz/getsong"><img src="https://img.shields.io/badge/coverage-63%25-brightgreen.svg?style=flat-square" alt="Coverage"></a>
+<a
 href="https://github.com/schollz/spotifydownload/releases/latest"><img
 src="https://img.shields.io/badge/version-0.4.0-brightgreen.svg?style=flat-square"
 alt="Version"></a> </p>

@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -248,7 +249,16 @@ func run(playlistURL string) (err error) {
 		}
 	}
 
+	cwd, err := os.Getwd()
+	if err != nil {
+		return
+	}
+	cwd, err = filepath.Abs(cwd)
+	if err != nil {
+		return
+	}
 	err = os.Chdir(playlistName)
+	defer os.Chdir(cwd)
 	if err != nil {
 		return
 	}
