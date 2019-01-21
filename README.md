@@ -20,6 +20,10 @@ alt="Version"></a> </p>
 
 Unlike other downloaders, there are no dependencies (other than ffmpeg which will automatically be installed onto your system when running the first time).
 
+**Disclaimer:** Downloading copyright songs may be illegal in your country. This tool is for educational purposes only and was created only to show how Spotify's API can be used to download music from YouTube. Please support the artists by buying their music.
+
+
+
 # Install
 
 Get the [latest release](https://github.com/schollz/spotifydownload/releases/latest) or install with `go get`:
