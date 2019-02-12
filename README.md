@@ -6,10 +6,10 @@
 <a href="https://travis-ci.org/schollz/spotifydownload"><img
 src="https://img.shields.io/travis/schollz/spotifydownload.svg?style=flat-square"
 alt="Build Status"></a> 
-<a href="https://gocover.io/github.com/schollz/getsong"><img src="https://img.shields.io/badge/coverage-63%25-brightgreen.svg?style=flat-square" alt="Coverage"></a>
+<a href="https://gocover.io/github.com/schollz/getsong"><img src="https://img.shields.io/badge/coverage-82%25-brightgreen.svg?style=flat-square" alt="Coverage"></a>
 <a
 href="https://github.com/schollz/spotifydownload/releases/latest"><img
-src="https://img.shields.io/badge/version-0.6.0-brightgreen.svg?style=flat-square"
+src="https://img.shields.io/badge/version-0.6.1-brightgreen.svg?style=flat-square"
 alt="Version"></a> </p>
 
 <p align="center">Automatically download your Spotify playlists.</p>
