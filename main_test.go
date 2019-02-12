@@ -5,17 +5,8 @@ import (
 	"path"
 	"testing"
 
-	"github.com/schollz/spotifydownload/getplaylist"
 	"github.com/stretchr/testify/assert"
 )
-
-func TestGetTracks(t *testing.T) {
-	spotifyURL := "https://open.spotify.com/user/spotify/playlist/37i9dQZEVXbrgWTCKQ0E8A?si=l5Pk_MH6TjOpKOUNhVm_zg"
-	playlistName, tracks, err := getplaylist.GetTracks(spotifyURL)
-	assert.Nil(t, err)
-	assert.Equal(t, 30, len(tracks))
-	assert.Equal(t, "Release Radar", playlistName)
-}
 
 func TestRun(t *testing.T) {
 	spotifyURL := "https://open.spotify.com/user/123394108/playlist/6rEgbYZUO5yQ11zfg5NGac?si=zeHdEBJ_Rmui4ArUaSd-FQ"
