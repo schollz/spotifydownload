@@ -169,7 +169,6 @@ func GetTracks(spotifyURL string) (playlistName string, tracks []Track, err erro
 
 	tracks = []Track{}
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
-	// fmt.Println(string(bodyBytes))
 	trackNum := 1
 	for _, line := range strings.Split(string(bodyBytes), "\n") {
 		if strings.Contains(line, `Spotify.Entity =`) {
@@ -185,6 +184,9 @@ func GetTracks(spotifyURL string) (playlistName string, tracks []Track, err erro
 				}
 			}
 		}
+	}
+	if len(tracks) == 0 {
+		fmt.Println(string(bodyBytes))
 	}
 	return
 }
