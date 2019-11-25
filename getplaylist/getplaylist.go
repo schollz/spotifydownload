@@ -4,6 +4,8 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strings"
+
+	log "github.com/schollz/logger"
 )
 
 // Track is the basic track entity
@@ -110,8 +112,7 @@ func GetArtist(spotifyURL string) (artistName string, err error) {
 	for _, line := range strings.Split(string(bodyBytes), "\n") {
 		if strings.Contains(line, `meta property="og:title" content="`) {
 			data := strings.TrimSpace(strings.Split(line, `meta property="og:title" content="`)[1])
-			data = data[:len(data)-2]
-			artistName = data
+			artistName = strings.Split(data, `"`)[0]
 			break
 		}
 	}
@@ -119,6 +120,7 @@ func GetArtist(spotifyURL string) (artistName string, err error) {
 }
 
 func GetTrack(spotifyTrackURL string) (artistName, trackName string, err error) {
+	log.Debugf("getting track: %s", spotifyTrackURL)
 	req, err := http.NewRequest("GET", spotifyTrackURL, nil)
 	if err != nil {
 		return
@@ -140,12 +142,11 @@ func GetTrack(spotifyTrackURL string) (artistName, trackName string, err error) 
 	for _, line := range strings.Split(string(bodyBytes), "\n") {
 		if strings.Contains(line, `meta property="og:title" content="`) {
 			data := strings.TrimSpace(strings.Split(line, `meta property="og:title" content="`)[1])
-			data = data[:len(data)-2]
-			trackName = data
+			trackName = strings.Split(data, `"`)[0]
 		}
 		if strings.Contains(line, `meta property="music:musician" content="`) {
 			data := strings.TrimSpace(strings.Split(line, `meta property="music:musician" content="`)[1])
-			data = data[:len(data)-2]
+			data = strings.Split(data, `"`)[0]
 			artistName, err = GetArtist(data)
 			break
 		}
@@ -175,19 +176,21 @@ func GetTracks(spotifyURL string) (playlistName string, tracks []Track, err erro
 	tracks = []Track{}
 	bodyBytes, _ := ioutil.ReadAll(resp.Body)
 	trackNum := 1
-	for _, line := range strings.Split(string(bodyBytes), "\n") {
+	for _, line := range strings.Split(string(bodyBytes), "<") {
 		if strings.Contains(line, `meta property="og:title" content="`) {
 			data := strings.TrimSpace(strings.Split(line, `meta property="og:title" content="`)[1])
-			data = data[:len(data)-2]
+			data = strings.Split(data, `"`)[0]
 			playlistName = strings.Split(data, ",")[0]
 		}
 
 		if strings.Contains(line, `meta property="music:song" content="`) {
 			data := strings.TrimSpace(strings.Split(line, `meta property="music:song" content="`)[1])
-			data = data[:len(data)-2]
+			data = strings.Split(data, `"`)[0]
+			log.Debugf("found track in playlist: %s", data)
 			track := Track{Number: trackNum}
 			track.Artist, track.Title, err = GetTrack(data)
 			if err != nil {
+				log.Debugf("error: %s", err)
 				continue
 			}
 			tracks = append(tracks, track)

@@ -5,12 +5,14 @@ import (
 	"path"
 	"testing"
 
+	log "github.com/schollz/logger"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestRun(t *testing.T) {
+	log.SetLevel("debug")
 	spotifyURL := "https://open.spotify.com/user/123394108/playlist/6rEgbYZUO5yQ11zfg5NGac?si=zeHdEBJ_Rmui4ArUaSd-FQ"
-	// os.RemoveAll("TestPlaylist")
+	os.RemoveAll("TestPlaylist")
 	assert.Nil(t, run(spotifyURL))
 	assert.True(t, exists("TestPlaylist"))
 	assert.True(t, exists(path.Join("TestPlaylist", "Allen Toussaint - Old Records (oa6KzRfvtAs).mp3")))
