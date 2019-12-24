@@ -126,7 +126,7 @@ func run(playlistURL string) (err error) {
 		go func(jobs <-chan getplaylist.Track, results chan<- Result) {
 			for j := range jobs {
 				_, err := getsong.GetSong(j.Title, j.Artist, getsong.Options{
-					ShowProgress: debug,
+					ShowProgress: false, //debug,
 					Debug:        debug,
 					Filename:     fmt.Sprintf("%s - %s", j.Artist, j.Title),
 					// DoNotDownload: true,
