@@ -16,7 +16,7 @@ alt="Version"></a> </p>
 
 *spotifydownload* is an [open-source](https://github.com/schollz/spotifydownload) tool that makes it easy to download your Spotify playlists, using [getsong](https://github.com/schollz/getsong) to find the corect song and download it and convert it to an mp3.
 
-![Example](.github/sdown.gif)
+![Example](.github/1.gif)
 
 Unlike other downloaders, there are no dependencies (other than ffmpeg which will automatically be installed onto your system when running the first time).
 
