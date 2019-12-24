@@ -11,7 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/rs/zerolog"
 	"github.com/schollz/getsong"
+	log "github.com/schollz/logger"
 	"github.com/schollz/spotifydownload/getplaylist"
 )
 
@@ -29,6 +31,12 @@ func main() {
 	flag.BoolVar(&verbose, "verbose", false, "Verbose mode")
 	flag.Parse()
 
+	if debug {
+		log.SetLevel("debug")
+	} else {
+		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+		log.SetLevel("warn")
+	}
 	if playlistURL == "" {
 		fmt.Print(`
 
@@ -90,7 +98,17 @@ func run(playlistURL string) (err error) {
 
 	workers := 1
 
-	tracksToDownload := make([]string, len(tracks))
+	tracksToDownload := make([]getplaylist.Track, len(tracks))
+	i := 0
+	for _, track := range tracks {
+		fname := fmt.Sprintf("%s - %s.mp3", track.Artist, track.Title)
+		if _, err = os.Stat(fname); os.IsNotExist(err) {
+			tracksToDownload[i] = track
+			i++
+		}
+	}
+	tracksToDownload = tracksToDownload[:i]
+	fmt.Printf("Downloading %d/%d tracks to '%s' folder\n", len(tracksToDownload), len(tracks), playlistName)
 
 	jobs := make(chan getplaylist.Track, len(tracksToDownload))
 
@@ -103,6 +121,7 @@ func run(playlistURL string) (err error) {
 				_, err := getsong.GetSong(j.Title, j.Artist, getsong.Options{
 					ShowProgress: debug,
 					Debug:        debug,
+					Filename:     fmt.Sprintf("%s - %s", j.Artist, j.Title),
 					// DoNotDownload: true,
 				})
 				if err != nil {
@@ -119,12 +138,11 @@ func run(playlistURL string) (err error) {
 		}(jobs, results)
 	}
 
-	for _, track := range tracks {
+	for _, track := range tracksToDownload {
 		jobs <- track
 	}
 	close(jobs)
 
-	fmt.Printf("Downloading %d tracks in the '%s' playlist\n", len(tracks), playlistName)
 	for i := 0; i < len(tracksToDownload); i++ {
 		<-results
 	}
