@@ -1,10 +1,14 @@
 package getplaylist
 
 import (
+	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
+	"time"
 
+	"github.com/pkg/errors"
 	log "github.com/schollz/logger"
 )
 
@@ -29,143 +33,121 @@ func getStringInBetween(str string, start string, end string) (result string) {
 	return
 }
 
-type SpotifyTrack struct {
-	Album struct {
-		AlbumType string `json:"album_type"`
-		Artists   []struct {
-			ExternalUrls struct {
-				Spotify string `json:"spotify"`
-			} `json:"external_urls"`
-			Href string `json:"href"`
-			ID   string `json:"id"`
-			Name string `json:"name"`
-			Type string `json:"type"`
-			URI  string `json:"uri"`
-		} `json:"artists"`
-		ExternalUrls struct {
-			Spotify string `json:"spotify"`
-		} `json:"external_urls"`
-		Href   string `json:"href"`
-		ID     string `json:"id"`
-		Images []struct {
-			Height int    `json:"height"`
-			URL    string `json:"url"`
-			Width  int    `json:"width"`
-		} `json:"images"`
-		Name                 string `json:"name"`
-		ReleaseDate          string `json:"release_date"`
-		ReleaseDatePrecision string `json:"release_date_precision"`
-		TotalTracks          int    `json:"total_tracks"`
-		Type                 string `json:"type"`
-		URI                  string `json:"uri"`
-	} `json:"album"`
-	Artists []struct {
-		ExternalUrls struct {
-			Spotify string `json:"spotify"`
-		} `json:"external_urls"`
-		Href string `json:"href"`
-		ID   string `json:"id"`
-		Name string `json:"name"`
-		Type string `json:"type"`
-		URI  string `json:"uri"`
-	} `json:"artists"`
-	DiscNumber  int  `json:"disc_number"`
-	DurationMs  int  `json:"duration_ms"`
-	Explicit    bool `json:"explicit"`
-	ExternalIds struct {
-		Isrc string `json:"isrc"`
-	} `json:"external_ids"`
-	ExternalUrls struct {
-		Spotify string `json:"spotify"`
-	} `json:"external_urls"`
+type SpotifyData struct {
+	Description string   `json:"description"`
+	Href        string   `json:"href"`
+	ID          string   `json:"id"`
+	Images      []Images `json:"images"`
+	Name        string   `json:"name"`
+	Owner       Owner    `json:"owner"`
+	Public      bool     `json:"public"`
+	SnapshotID  string   `json:"snapshot_id"`
+	Tracks      Tracks   `json:"tracks"`
+	Type        string   `json:"type"`
+	URI         string   `json:"uri"`
+}
+type Images struct {
+	URL string `json:"url"`
+}
+type Owner struct {
+	DisplayName string `json:"display_name"`
 	Href        string `json:"href"`
 	ID          string `json:"id"`
-	IsLocal     bool   `json:"is_local"`
-	IsPlayable  bool   `json:"is_playable"`
-	Name        string `json:"name"`
-	Popularity  int    `json:"popularity"`
-	PreviewURL  string `json:"preview_url"`
-	TrackNumber int    `json:"track_number"`
 	Type        string `json:"type"`
 	URI         string `json:"uri"`
 }
-
-func GetArtist(spotifyURL string) (artistName string, err error) {
-	req, err := http.NewRequest("GET", spotifyURL, nil)
-	if err != nil {
-		return
-	}
-
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, _ := ioutil.ReadAll(resp.Body)
-	for _, line := range strings.Split(string(bodyBytes), "\n") {
-		if strings.Contains(line, `meta property="og:title" content="`) {
-			data := strings.TrimSpace(strings.Split(line, `meta property="og:title" content="`)[1])
-			artistName = strings.Split(data, `"`)[0]
-			break
-		}
-	}
-	return
+type AddedBy struct {
+	Href string `json:"href"`
+	ID   string `json:"id"`
+	Type string `json:"type"`
+	URI  string `json:"uri"`
 }
-
-func GetTrack(spotifyTrackURL string) (artistName, trackName string, err error) {
-	log.Debugf("getting track: %s", spotifyTrackURL)
-	req, err := http.NewRequest("GET", spotifyTrackURL, nil)
-	if err != nil {
-		return
-	}
-
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
-
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return
-	}
-	defer resp.Body.Close()
-
-	bodyBytes, _ := ioutil.ReadAll(resp.Body)
-	for _, line := range strings.Split(string(bodyBytes), "\n") {
-		if strings.Contains(line, `meta property="og:title" content="`) {
-			data := strings.TrimSpace(strings.Split(line, `meta property="og:title" content="`)[1])
-			trackName = strings.Split(data, `"`)[0]
-		}
-		if strings.Contains(line, `meta property="music:musician" content="`) {
-			data := strings.TrimSpace(strings.Split(line, `meta property="music:musician" content="`)[1])
-			data = strings.Split(data, `"`)[0]
-			artistName, err = GetArtist(data)
-			break
-		}
-	}
-	return
+type Artists struct {
+	Href string `json:"href"`
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Type string `json:"type"`
+	URI  string `json:"uri"`
+}
+type Album struct {
+	AlbumType            string    `json:"album_type"`
+	Artists              []Artists `json:"artists"`
+	Href                 string    `json:"href"`
+	ID                   string    `json:"id"`
+	Images               []Images  `json:"images"`
+	Name                 string    `json:"name"`
+	ReleaseDate          string    `json:"release_date"`
+	ReleaseDatePrecision string    `json:"release_date_precision"`
+	TotalTracks          int       `json:"total_tracks"`
+	Type                 string    `json:"type"`
+	URI                  string    `json:"uri"`
+}
+type ExternalIds struct {
+	Isrc string `json:"isrc"`
+}
+type SpotifyTrack struct {
+	Album       Album       `json:"album"`
+	Artists     []Artists   `json:"artists"`
+	DiscNumber  int         `json:"disc_number"`
+	DurationMs  int         `json:"duration_ms"`
+	Episode     bool        `json:"episode"`
+	Explicit    bool        `json:"explicit"`
+	ExternalIds ExternalIds `json:"external_ids"`
+	Href        string      `json:"href"`
+	ID          string      `json:"id"`
+	IsLocal     bool        `json:"is_local"`
+	IsPlayable  bool        `json:"is_playable"`
+	Name        string      `json:"name"`
+	Popularity  int         `json:"popularity"`
+	PreviewURL  string      `json:"preview_url"`
+	TrackNumber int         `json:"track_number"`
+	Type        string      `json:"type"`
+	URI         string      `json:"uri"`
+}
+type LinkedFrom struct {
+	Href string `json:"href"`
+	ID   string `json:"id"`
+	Type string `json:"type"`
+	URI  string `json:"uri"`
+}
+type Items struct {
+	AddedAt time.Time    `json:"added_at"`
+	AddedBy AddedBy      `json:"added_by"`
+	IsLocal bool         `json:"is_local"`
+	Track   SpotifyTrack `json:"track,omitempty"`
+}
+type Tracks struct {
+	Href   string  `json:"href"`
+	Items  []Items `json:"items"`
+	Limit  int     `json:"limit"`
+	Offset int     `json:"offset"`
+	Total  int     `json:"total"`
 }
 
 // GetTracks will return the playlist name and list of tracks from a Spotify playlist
 func GetTracks(spotifyURL string) (playlistName string, tracks []Track, err error) {
-	req, err := http.NewRequest("GET", spotifyURL, nil)
+	accessToken, err := getAccessToken(spotifyURL)
 	if err != nil {
 		return
 	}
 
-	req.Header.Set("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:65.0) Gecko/20100101 Firefox/65.0")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
-	req.Header.Set("Connection", "keep-alive")
-	req.Header.Set("Upgrade-Insecure-Requests", "1")
+	foo := strings.Split(spotifyURL, "/playlist/")
+	if len(foo) < 2 {
+		err = fmt.Errorf("could not get id")
+		return
+	}
+	playlistID := strings.Split(foo[1], "/")[0]
+	playlistID = strings.Split(playlistID, "?")[0]
+	log.Tracef("playlistID: '%s'", playlistID)
+	req, err := http.NewRequest("GET", "https://api.spotify.com/v1/playlists/"+playlistID+"?type=track%2Cepisode&market=US", nil)
+	if err != nil {
+		return
+	}
+	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:71.0) Gecko/20100101 Firefox/71.0")
+	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept-Language", "en")
+	req.Header.Set("Referer", "https://open.spotify.com/")
+	req.Header.Set("Authorization", "Bearer "+accessToken)
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
@@ -173,34 +155,58 @@ func GetTracks(spotifyURL string) (playlistName string, tracks []Track, err erro
 	}
 	defer resp.Body.Close()
 
-	tracks = []Track{}
-	bodyBytes, _ := ioutil.ReadAll(resp.Body)
-	trackNum := 1
-	for _, line := range strings.Split(string(bodyBytes), "<") {
-		if strings.Contains(line, `meta property="og:title" content="`) {
-			data := strings.TrimSpace(strings.Split(line, `meta property="og:title" content="`)[1])
-			data = strings.Split(data, `"`)[0]
-			playlistName = strings.Split(data, ",")[0]
-		}
+	var data SpotifyData
+	err = json.NewDecoder(resp.Body).Decode(&data)
+	if err != nil {
+		err = errors.Wrap(err, "could not decode spotify data")
+	}
 
-		if strings.Contains(line, `meta property="music:song" content="`) {
-			data := strings.TrimSpace(strings.Split(line, `meta property="music:song" content="`)[1])
-			data = strings.Split(data, `"`)[0]
-			log.Debugf("found track in playlist: %s", data)
-			track := Track{Number: trackNum}
-			track.Artist, track.Title, err = GetTrack(data)
-			if err != nil {
-				log.Debugf("error: %s", err)
-				continue
-			}
-			tracks = append(tracks, track)
-			trackNum++
+	log.Tracef("data: %+v", data)
+	tracks = make([]Track, len(data.Tracks.Items))
+	if len(tracks) == 0 {
+		err = fmt.Errorf("could not find any tracks")
+		return
+	}
+	for i, track := range data.Tracks.Items {
+		tracks[i] = Track{
+			Number: i,
+			Title:  track.Track.Name,
+			Artist: track.Track.Artists[0].Name,
 		}
 	}
-	// fmt.Println(tracks)
-	// if len(tracks) == 0 {
-	// 	fmt.Println(spotifyURL)
-	// 	fmt.Println(string(bodyBytes))
-	// }
+	playlistName = data.Name
+	return
+}
+
+func getAccessToken(spotifyURL string) (accessToken string, err error) {
+	req, err := http.NewRequest("GET", spotifyURL, nil)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+
+	req.Header.Set("User-Agent", "Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:71.0) Gecko/20100101 Firefox/71.0")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8")
+	req.Header.Set("Accept-Language", "en-US,en;q=0.5")
+	req.Header.Set("Dnt", "1")
+	req.Header.Set("Connection", "keep-alive")
+	req.Header.Set("Cookie", "sp_ab=%7B%7D; sp_landing=http%3A%2F%2Fopen.spotify.com%2Fplaylist%2F37i9dQZF1EtsXGZhBtSWWl; sp_t=c695ff90921aafb17baa61ea6c01c2f8")
+	req.Header.Set("Upgrade-Insecure-Requests", "1")
+	req.Header.Set("Cache-Control", "max-age=0")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	defer resp.Body.Close()
+
+	bodyBytes, _ := ioutil.ReadAll(resp.Body)
+	accessToken = getStringInBetween(string(bodyBytes), `"accessToken":"`, `"`)
+	log.Tracef("got access token: %s", accessToken)
+
+	if len(accessToken) < 3 {
+		err = fmt.Errorf("got no access token")
+	}
 	return
 }
