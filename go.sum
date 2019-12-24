@@ -22,8 +22,8 @@ github.com/rs/zerolog v1.17.2/go.mod h1:9nvC1axdVrAHcu/s9taAVfBuIdTZLVQmKQyvrUjF
 github.com/russross/blackfriday/v2 v2.0.1/go.mod h1:+Rmxgy9KzJVeS9/2gXHxylqXiyQDYRxCVz55jmeOWTM=
 github.com/rylio/ytdl v0.6.0 h1:PmbmTcgEnzpZ5UI60TWIKp8zHlDxoefQvaXnqdGmlvg=
 github.com/rylio/ytdl v0.6.0/go.mod h1:F0WX8szfQ00mhmfla+0xVJp483SBV4VO/ByUaNioNSM=
-github.com/schollz/getsong v0.7.2 h1:uO+C9LSxtEteYjRv5KCHegMGYNzwkkkbJDwWNVSZIk0=
-github.com/schollz/getsong v0.7.2/go.mod h1:Bz1uUK5iQVdGvO6ZPXXJBvlTjm50wsTVR4B4Cc4TCkk=
+github.com/schollz/getsong v0.7.5 h1:p5m1XJIYLH5ppAGcXXUVTAyikZIDsoolBS300Foh8ig=
+github.com/schollz/getsong v0.7.5/go.mod h1:Bz1uUK5iQVdGvO6ZPXXJBvlTjm50wsTVR4B4Cc4TCkk=
 github.com/schollz/logger v1.1.2 h1:liE73zV/9dw4qswqzG0Ydxhx3ltJLLo7Gd1YbLCx21Y=
 github.com/schollz/logger v1.1.2/go.mod h1:P6F4/dGMGcx8wh+kG1zrNEd4vnNpEBY/mwEMd/vn6AM=
 github.com/schollz/progressbar/v2 v2.14.2 h1:R9MhKyKNz+QaS/8gyU7C2WP9jOXagLBy7dE2XfUjW1Y=

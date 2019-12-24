@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"time"
 
@@ -24,17 +25,19 @@ type Result struct {
 
 var debug, verbose bool
 
+func init() {
+	zerolog.SetGlobalLevel(zerolog.ErrorLevel)
+}
+
 func main() {
 	var playlistURL string
 	flag.StringVar(&playlistURL, "playlist", "", "The Spotify playlist URL link")
 	flag.BoolVar(&debug, "debug", false, "Debug mode")
-	flag.BoolVar(&verbose, "verbose", false, "Verbose mode")
 	flag.Parse()
 
 	if debug {
 		log.SetLevel("debug")
 	} else {
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
 		log.SetLevel("warn")
 	}
 	if playlistURL == "" {
@@ -96,7 +99,8 @@ func run(playlistURL string) (err error) {
 	bJSON, _ := json.MarshalIndent(tracks, "", " ")
 	ioutil.WriteFile(time.Now().Format("2006-01-02")+".json", bJSON, 0644)
 
-	workers := 1
+	runtime.GOMAXPROCS(runtime.NumCPU())
+	workers := runtime.NumCPU()
 
 	tracksToDownload := make([]getplaylist.Track, len(tracks))
 	i := 0
@@ -108,7 +112,11 @@ func run(playlistURL string) (err error) {
 		}
 	}
 	tracksToDownload = tracksToDownload[:i]
-	fmt.Printf("Downloading %d/%d tracks to '%s' folder\n", len(tracksToDownload), len(tracks), playlistName)
+	if len(tracksToDownload) == len(tracks) {
+		fmt.Printf("Downloading %d tracks to '%s' folder\n", len(tracks), playlistName)
+	} else {
+		fmt.Printf("Downloading remaining %d of %d tracks to '%s' folder\n", len(tracksToDownload), len(tracks), playlistName)
+	}
 
 	jobs := make(chan getplaylist.Track, len(tracksToDownload))
 
@@ -117,19 +125,18 @@ func run(playlistURL string) (err error) {
 	for w := 0; w < workers; w++ {
 		go func(jobs <-chan getplaylist.Track, results chan<- Result) {
 			for j := range jobs {
-				fmt.Printf("%2d) Getting '%s' by '%s'..", j.Number, j.Title, j.Artist)
 				_, err := getsong.GetSong(j.Title, j.Artist, getsong.Options{
 					ShowProgress: debug,
 					Debug:        debug,
 					Filename:     fmt.Sprintf("%s - %s", j.Artist, j.Title),
 					// DoNotDownload: true,
 				})
-				if err != nil {
-					fmt.Printf("..error: %s\n", err)
+				if err == nil {
+					fmt.Printf("'%s' by '%s' downloaded.\n", j.Title, j.Artist)
 				} else {
-					fmt.Printf("..done.\n")
+					fmt.Printf("'%s' by '%s' errored.\n", j.Title, j.Artist)
+					log.Debug(err.Error())
 				}
-
 				results <- Result{
 					track: j,
 					err:   err,
@@ -146,5 +153,6 @@ func run(playlistURL string) (err error) {
 	for i := 0; i < len(tracksToDownload); i++ {
 		<-results
 	}
+	err = nil
 	return
 }

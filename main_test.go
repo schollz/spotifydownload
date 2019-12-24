@@ -15,8 +15,8 @@ func TestRun(t *testing.T) {
 	os.RemoveAll("TestPlaylist")
 	assert.Nil(t, run(spotifyURL))
 	assert.True(t, exists("TestPlaylist"))
-	assert.True(t, exists(path.Join("TestPlaylist", "Allen Toussaint - Old Records (obtJEJ4VPmk).mp3")))
-	assert.True(t, exists(path.Join("TestPlaylist", "HAERTS - Eva (qxiOMm_x3Xg).mp3")))
+	assert.True(t, exists(path.Join("TestPlaylist", "Allen Toussaint - Old Records.mp3")))
+	assert.True(t, exists(path.Join("TestPlaylist", "HAERTS - Eva.mp3")))
 }
 
 // exists reports whether the named file or directory exists.
