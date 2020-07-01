@@ -6,11 +6,7 @@
 <a href="https://travis-ci.org/schollz/spotifydownload"><img
 src="https://img.shields.io/travis/schollz/spotifydownload.svg?style=flat-square"
 alt="Build Status"></a> 
-<a href="https://gocover.io/github.com/schollz/getsong"><img src="https://img.shields.io/badge/coverage-82%25-brightgreen.svg?style=flat-square" alt="Coverage"></a>
-<a
-href="https://github.com/schollz/spotifydownload/releases/latest"><img
-src="https://img.shields.io/badge/version-0.7.1-brightgreen.svg?style=flat-square"
-alt="Version"></a> </p>
+<a href="https://gocover.io/github.com/schollz/getsong"><img src="https://img.shields.io/badge/coverage-82%25-brightgreen.svg?style=flat-square" alt="Coverage"></a> </p>
 
 <p align="center">Automatically download your Spotify playlists.</p>
 
@@ -26,7 +22,15 @@ Unlike other downloaders, there are no dependencies (other than ffmpeg which wil
 
 # Install
 
-Get the [latest release](https://github.com/schollz/spotifydownload/releases/latest) or install with `go get`:
+Install by downloading [latest release](https://github.com/schollz/spotifydownload/releases/latest).
+
+Or install with bash:
+
+```
+curl https://getspotifydownload.schollz.com | bash
+```
+
+Or install with `go get`:
 
 ```
 go get github.com/schollz/spotifydownload
