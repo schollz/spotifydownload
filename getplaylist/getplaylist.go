@@ -168,10 +168,18 @@ func GetTracks(spotifyURL string) (playlistName string, tracks []Track, err erro
 		return
 	}
 	for i, track := range data.Tracks.Items {
+		name := ""
+		if len(track.Track.Artists) > 0 {
+			name = track.Track.Artists[0].Name
+		}
+		if name == "" {
+			log.Tracef("no track: %+v", track)
+			continue
+		}
 		tracks[i] = Track{
 			Number: i,
 			Title:  track.Track.Name,
-			Artist: track.Track.Artists[0].Name,
+			Artist: name,
 		}
 	}
 	playlistName = data.Name

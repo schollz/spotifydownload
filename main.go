@@ -60,7 +60,7 @@ Enter the Spotify Playlist link here:
 
 	err := run(playlistURL)
 	if err != nil {
-		fmt.Printf("\nProblem with your bearer key or your playlist ID: %s\n", err.Error())
+		log.Infof("\nProblem with your bearer key or your playlist ID: %s\n", err.Error())
 	}
 }
 
@@ -99,13 +99,13 @@ func run(playlistURL string) (err error) {
 	bJSON, _ := json.MarshalIndent(tracks, "", " ")
 	ioutil.WriteFile(time.Now().Format("2006-01-02")+".json", bJSON, 0644)
 
-	runtime.GOMAXPROCS(runtime.NumCPU())
+	runtime.GOMAXPROCS(4 * runtime.NumCPU())
 	workers := runtime.NumCPU()
 
 	tracksToDownload := make([]getplaylist.Track, len(tracks))
 	i := 0
 	for _, track := range tracks {
-		fname := fmt.Sprintf("%s - %s.mp3", track.Artist, track.Title)
+		fname := fmt.Sprintf("%s - %s.m4a", track.Artist, track.Title)
 		if _, err = os.Stat(fname); os.IsNotExist(err) {
 			tracksToDownload[i] = track
 			i++
@@ -113,9 +113,9 @@ func run(playlistURL string) (err error) {
 	}
 	tracksToDownload = tracksToDownload[:i]
 	if len(tracksToDownload) == len(tracks) {
-		fmt.Printf("Downloading %d tracks to '%s' folder\n", len(tracks), playlistName)
+		log.Infof("Downloading %d tracks to '%s' folder\n", len(tracks), playlistName)
 	} else {
-		fmt.Printf("Downloading remaining %d of %d tracks to '%s' folder\n", len(tracksToDownload), len(tracks), playlistName)
+		log.Infof("Downloading remaining %d of %d tracks to '%s' folder\n", len(tracksToDownload), len(tracks), playlistName)
 	}
 
 	jobs := make(chan getplaylist.Track, len(tracksToDownload))
@@ -132,10 +132,9 @@ func run(playlistURL string) (err error) {
 					// DoNotDownload: true,
 				})
 				if err == nil {
-					fmt.Printf("'%s' by '%s' downloaded.\n", j.Title, j.Artist)
+					log.Infof("'%s' by '%s' downloaded.", j.Title, j.Artist)
 				} else {
-					fmt.Printf("'%s' by '%s' errored.\n", j.Title, j.Artist)
-					log.Debug(err.Error())
+					log.Warnf("'%s' by '%s' not downloaded: %s.", j.Title, j.Artist, err.Error())
 				}
 				results <- Result{
 					track: j,

@@ -14,7 +14,7 @@ alt="Version"></a> </p>
 
 <p align="center">Automatically download your Spotify playlists.</p>
 
-*spotifydownload* is an [open-source](https://github.com/schollz/spotifydownload) tool that makes it easy to download your Spotify playlists, using [getsong](https://github.com/schollz/getsong) to find the correct song and download it and convert it to an mp3.
+*spotifydownload* is an [open-source](https://github.com/schollz/spotifydownload) tool that makes it easy to download your Spotify playlists, using [getsong](https://github.com/schollz/getsong) to find the correct song and download it and convert it to an m4a.
 
 ![Example](.github/1.gif)
 
