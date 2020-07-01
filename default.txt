@@ -513,7 +513,7 @@ main() {
   local create_prefix_rcode
 
   spotifydownload_bin_name="spotifydownload"
-  spotifydownload_version="8.0.11"
+  spotifydownload_version="0.7.9"
   spotifydownload_dl_ext="tar.gz"
   spotifydownload_base_url="https://github.com/schollz/spotifydownload/releases/download"
   prefix="${1}"
