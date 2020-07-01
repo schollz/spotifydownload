@@ -20,16 +20,14 @@ build:
     - arm64
   goarm:
     - 7
-  hooks:
-    post: sh ./src/install/prepare-sources-tarball.sh
 nfpms:
   -
     formats:
       - deb
     vendor: "schollz.com"
-    homepage: "https://schollz.com/software/spotifydownload/"
+    homepage: "https://schollz.com/software/spotify/"
     maintainer: "Zack Scholl <zack.scholl@gmail.com>"
-    description: "A simple, secure, and fast way to transfer data."
+    description: "A simple way to download Spotify playlists."
     license: "MIT"
     file_name_template: "{{.ProjectName}}_{{.Version}}_{{.Os}}-{{.Arch}}"
     replacements:
